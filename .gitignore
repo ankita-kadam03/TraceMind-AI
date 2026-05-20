@@ -1,0 +1,6 @@
+﻿venv/
+vectorDB/
+__pycache__/
+*.pyc
+.env
+*.wav
