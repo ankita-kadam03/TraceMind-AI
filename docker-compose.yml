@@ -1,6 +1,8 @@
 version: "3.8"
 
 services:
+
+  # ── Jaeger (traces) ───────────────────────────────────────────
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: jaeger
@@ -18,3 +20,43 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # ── Prometheus (metrics scraper) ──────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"     # Prometheus UI
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=7d"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Grafana (dashboard UI) ────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"     # Grafana UI
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=tracemind
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+
+volumes:
+  grafana_data:
