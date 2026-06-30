@@ -1,7 +1,8 @@
 # VoiceEmotionRAG
 
-> Terminal-based AI assistant: speaks → detects emotion → retrieves knowledge → responds.
-> Fully open source. No paid APIs. OpenTelemetry observability with Jaeger UI support.
+> Voice & text AI assistant: detects emotion → retrieves knowledge → generates response.
+> **Now with web UI + Grok AI support!**
+> Fully open source. Optional paid APIs (Grok) or fully local (Ollama). OpenTelemetry observability with Jaeger UI.
 
 ---
 
@@ -27,42 +28,108 @@ Parallel: OpenTelemetry → Console  OR  Jaeger UI
 
 ## Quick Start
 
-### 1. Install Ollama
+### Setup
 
-Download from https://ollama.ai then:
-
+1. **Create & activate virtual environment:**
 ```bash
-ollama pull mistral
-ollama serve
+python -m venv venv
+venv\Scripts\Activate.ps1  # Windows
+source venv/bin/activate  # macOS/Linux
 ```
 
-### 2. Install Python dependencies
-
+2. **Install dependencies:**
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Build vector database
-
+3. **Configure LLM provider:**
 ```bash
-python main.py --build-index
+cp .env.example .env
+# Edit .env and choose: Grok AI (cloud) or Ollama (local)
 ```
 
-### 4. Run
+---
 
+### Option A: Web Frontend (Modern UI) ⭐ **Recommended**
+
+**Terminal 1 - Start API:**
 ```bash
-# Text mode (no mic — good for testing)
-python main.py --text "I feel anxious and overwhelmed"
+python api.py
+```
+✅ API running on `http://localhost:8000`
 
-# Voice mode (5 second recording)
+**Terminal 2 - Start Frontend:**
+```bash
+cd frontend
+npm install  # first time only
+npm run dev
+```
+✅ Frontend running on `http://localhost:5173`
+
+**Open in browser:** `http://localhost:5173`
+
+---
+
+### Option B: CLI (Terminal) 
+
+**Voice mode:**
+```bash
 python main.py
-
-# Longer recording
-python main.py --duration 10
-
-# Different Ollama model
-python main.py --model llama3
 ```
+
+**Text mode:**
+```bash
+python main.py --text "I feel anxious"
+```
+
+**Other options:**
+```bash
+python main.py --duration 10          # Longer recording
+python main.py --model llama3         # Different Ollama model
+python main.py --build-index          # Rebuild vector DB
+```
+
+---
+
+## LLM Provider: Grok AI vs Ollama
+
+### 🧠 Grok AI (Cloud - Recommended)
+
+**What:** xAI's advanced reasoning model via REST API
+**Cost:** Pay-per-use ($0.02-0.10 per request)
+**Setup:** Get API key from https://console.x.ai
+
+```bash
+# .env
+LLM_PROVIDER=grok
+GROK_API_KEY=xai_your_key_here
+GROK_MODEL=grok-2
+```
+
+**Pros:** Fast, no local GPU, no model downloads
+**Cons:** Requires API key, internet required
+
+---
+
+### 🏠 Ollama (Local)
+
+**What:** Run Mistral/Llama models locally on your machine
+**Cost:** Free
+**Setup:** Download from https://ollama.ai
+
+```bash
+# Terminal 1
+ollama pull mistral
+ollama serve
+
+# .env
+LLM_PROVIDER=ollama
+OLLAMA_MODEL=mistral
+OLLAMA_HOST=http://localhost:11434
+```
+
+**Pros:** Fully offline, privacy-first, free
+**Cons:** Slow on CPU (needs GPU), downloads 5-40GB models
 
 ---
 
@@ -138,22 +205,44 @@ python main.py --build-index
 
 ```
 VoiceEmotionRAG/
-├── main.py                       ← entry point
-├── requirements.txt
-├── docker-compose.yml            ← Jaeger one-command setup
+├── frontend/                      # React + TypeScript web UI
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── ChatInterface.tsx  # Main chat component
+│   │   │   ├── MicInput.tsx       # Microphone recorder
+│   │   │   └── EmotionDisplay.tsx # Emotion visualization
+│   │   ├── services/
+│   │   │   └── api.ts             # API client
+│   │   └── main.tsx
+│   └── package.json
+│
 ├── backend/
-│   ├── speech.py                 ← mic + faster-whisper STT
-│   ├── emotion.py                ← HuggingFace emotion detection
-│   ├── rag.py                    ← LangChain + ChromaDB retrieval
-│   └── llm.py                    ← Ollama local LLM
+│   ├── speech.py                  # Audio transcription (faster-whisper)
+│   ├── emotion.py                 # Emotion detection (HuggingFace)
+│   ├── rag.py                     # Document retrieval (ChromaDB)
+│   └── llm.py                     # LLM generation (Grok/Ollama)
+│
+├── services/                      # Service layer
+│   └── emotion_service.py         # Pipeline orchestration
+│
 ├── observability/
-│   ├── tracing.py                ← OTel setup (console + Jaeger)
-│   └── metrics.py                ← grounding + hallucination score
+│   ├── tracing.py                 # OpenTelemetry setup
+│   └── metrics.py                 # Prometheus metrics
+│
 ├── dashboard/
-│   └── charts.py                 ← Rich terminal UI panels
-├── data/                         ← knowledge base (.txt files)
-└── vectorDB/                     ← ChromaDB index (auto-created)
+│   └── charts.py                  # Rich terminal UI
+│
+├── data/                          # Knowledge base (7 .txt files)
+├── vectorDB/                      # ChromaDB embeddings (auto-created)
+│
+├── main.py                        # CLI entry point
+├── api.py                         # FastAPI REST API
+├── config.py                      # Configuration management
+├── requirements.txt
+└── .env.example
 ```
+
+For detailed architecture see [ARCHITECTURE.md](ARCHITECTURE.md)
 
 ---
 
